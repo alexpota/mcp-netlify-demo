@@ -1,0 +1,20 @@
+{
+  "name": "mcp-netlify-demo",
+  "version": "1.0.0",
+  "description": "Live demonstration site for deploy-mcp Netlify integration",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexpota/mcp-netlify-demo.git"
+  },
+  "keywords": [
+    "deploy-mcp",
+    "netlify",
+    "demo",
+    "deployment-tracking"
+  ],
+  "author": "AlexP",
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deploy MCP - Netlify Integration Demo</title>
+    <meta name="description" content="Live demonstration of deploy-mcp tracking Netlify deployments in real-time">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23000'/><path d='M16 8v8M12 12l4 4 4-4M10 20h12' stroke='%2300D9FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0a0a;
+            --bg-secondary: #111111;
+            --border: #1a1a1a;
+            --text: #ffffff;
+            --text-dim: #a0a0a0;
+            --text-muted: #606060;
+            --netlify: #00D9FF;
+            --netlify-dim: #00D9FF20;
+            --success: #22c55e;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated gradient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 50%, var(--netlify-dim) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, #ff6b6b10 0%, transparent 50%),
+                        radial-gradient(circle at 40% 20%, #22c55e10 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: rotate(0deg) translate(0, 0); }
+            33% { transform: rotate(120deg) translate(-10px, 10px); }
+            66% { transform: rotate(240deg) translate(10px, -10px); }
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        header {
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            background: rgba(10, 10, 10, 0.8);
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(48px, 8vw, 72px);
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            margin-bottom: 24px;
+            background: linear-gradient(to right, var(--text) 0%, var(--netlify) 50%, var(--text) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        .hero .subtitle {
+            font-size: 20px;
+            color: var(--text-dim);
+            margin-bottom: 48px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Status Card */
+        .status-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            margin: 48px auto;
+            max-width: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--netlify), transparent);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .status-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            background: var(--success);
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .deployment-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            text-align: left;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* Code Block */
+        .code-section {
+            margin: 80px auto;
+            max-width: 800px;
+        }
+
+        .code-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .code-header h2 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .code-header p {
+            color: var(--text-dim);
+            font-size: 16px;
+        }
+
+        .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .code-block pre {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            overflow-x: auto;
+            color: var(--text-dim);
+        }
+
+        .code-block .comment {
+            color: var(--text-muted);
+        }
+
+        .code-block .string {
+            color: var(--netlify);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 8px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-dim);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .copy-btn:hover {
+            color: var(--text);
+            border-color: var(--text-dim);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        /* Features Grid */
+        .features {
+            margin: 80px auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .feature {
+            padding: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .feature:hover {
+            border-color: var(--netlify);
+            transform: translateY(-2px);
+        }
+
+        .feature h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--netlify);
+        }
+
+        .feature p {
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        footer {
+            padding: 48px 0;
+            border-top: 1px solid var(--border);
+            margin-top: 120px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-text {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--text);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 80px 0 60px;
+            }
+
+            .deployment-info {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <nav>
+                <a href="/" class="logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v10M8 6l4 4 4-4M3 18h18" stroke="#00D9FF"/>
+                    </svg>
+                    deploy-mcp demo
+                </a>
+                <div class="nav-links">
+                    <a href="https://deploy-mcp.io" target="_blank">Main Site</a>
+                    <a href="https://github.com/alexpota/deploy-mcp" target="_blank">GitHub</a>
+                    <a href="https://app.netlify.com/sites/mcp-netlify-demo" target="_blank">Netlify Dashboard</a>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Hero -->
+        <section class="hero">
+            <h1>Netlify Integration Live</h1>
+            <p class="subtitle">
+                This demo site showcases deploy-mcp tracking real Netlify deployments.<br>
+                Every commit triggers a deployment that's monitored by our MCP tools.
+            </p>
+
+            <!-- Real Deploy Badges -->
+            <div style="margin: 32px 0; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                <img src="https://deploy-mcp.io/badge/alexpota/mcp-netlify-demo/netlify" 
+                     alt="Deploy MCP Status" 
+                     style="height: 28px;">
+                <!-- Netlify badge - replace YOUR_SITE_ID after first deployment -->
+                <img src="https://api.netlify.com/api/v1/badges/YOUR_SITE_ID/deploy-status" 
+                     alt="Netlify Status" 
+                     style="height: 28px;display:none;">
+            </div>
+
+            <!-- Live Status Card -->
+            <div class="status-card">
+                <div class="status-header">
+                    <span class="status-title">Current Deployment</span>
+                    <span class="status-badge">Live</span>
+                </div>
+                <div class="deployment-info">
+                    <div class="info-item">
+                        <div class="info-label">Platform</div>
+                        <div class="info-value">Netlify</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Environment</div>
+                        <div class="info-value">Production</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Version</div>
+                        <div class="info-value" id="version">v1.0.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Deploy Time</div>
+                        <div class="info-value" id="deploy-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Code Example -->
+        <section class="code-section">
+            <div class="code-header">
+                <h2>Test It Yourself</h2>
+                <p>Ask your AI assistant to check this deployment</p>
+            </div>
+            
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCommand(event)">Copy</button>
+                <pre><span class="comment"># In your AI conversation, try these commands:</span>
+
+<span class="string">"Check the Netlify deployment for mcp-netlify-demo"</span>
+
+<span class="string">"Show me the deployment logs for this Netlify site"</span>
+
+<span class="string">"Watch the next deployment progress on Netlify"</span>
+
+<span class="comment"># Smart comparison modes:</span>
+<span class="string">"Compare my last 2 deployments"</span>
+<span class="string">"Compare current to last successful deployment"</span>
+<span class="string">"Compare to production deployment"</span></pre>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features">
+            <div class="feature">
+                <h3>
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Real-Time Tracking
+                </h3>
+                <p>Every deployment to this site is tracked in real-time by deploy-mcp, providing instant status updates directly in your AI conversation.</p>
+            </div>
+
+            <div class="feature">
+                <h3>
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    15 Deployment States
+                </h3>
+                <p>Netlify's comprehensive deployment states are all mapped and tracked, from uploading to processing to ready.</p>
+            </div>
+
+            <div class="feature">
+                <h3>
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                    </svg>
+                    Full Integration
+                </h3>
+                <p>Complete integration with Netlify's API provides deployment history, logs, and detailed status information.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-text">
+                    Deploy #{deployNumber} · Built with deploy-mcp
+                </div>
+                <div class="footer-links">
+                    <a href="https://deploy-mcp.io" target="_blank">deploy-mcp.io</a>
+                    <a href="https://github.com/alexpota/deploy-mcp" target="_blank">GitHub</a>
+                    <a href="https://www.npmjs.com/package/deploy-mcp" target="_blank">npm</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Get deployment info from URL params (Netlify adds these)
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Update deploy time to current time
+        function updateDeployTime() {
+            const deployTime = document.getElementById('deploy-time');
+            const now = new Date();
+            deployTime.textContent = now.toLocaleTimeString();
+        }
+        updateDeployTime();
+
+        // Try to get real deploy ID from Netlify context or generate one
+        const deployId = urlParams.get('deploy_id') || 
+                        localStorage.getItem('last_deploy') || 
+                        Math.floor(Math.random() * 100) + 1;
+        
+        // Store for consistency
+        if (!localStorage.getItem('last_deploy')) {
+            localStorage.setItem('last_deploy', deployId);
+        }
+        
+        // Update version and footer with deploy info
+        document.getElementById('version').textContent = `v1.0.${deployId}`;
+        document.querySelector('.footer-text').innerHTML = `Deploy #${deployId} · <span id="commit-sha"></span> · Built with deploy-mcp`;
+
+        // Try to fetch deployment info from Netlify API (public endpoint)
+        fetch('/.netlify/functions/deploy-info')
+            .catch(() => {
+                // Fallback: Use static data if no function available
+                document.getElementById('commit-sha').textContent = 'main';
+            });
+
+        // Copy command
+        function copyCommand(event) {
+            const commands = `"Check the Netlify deployment for mcp-netlify-demo"`;
+            navigator.clipboard.writeText(commands).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.classList.add('copied');
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Deploy-Id = ":deploy_id"
+    X-Commit-Ref = ":commit_ref"
+
+[[redirects]]
+  from = "/api/deploy-info"
+  to = "/.netlify/functions/deploy-info"
+  status = 200
